@@ -1,32 +1,17 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { initFog } from '../environment/fog.js';
-import { initGround } from '../environment/ground.js';
-import { initSky } from '../environment/sky.js';
+import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader';
+import { loadGLBModel } from '../loaders/glbloader.js';
 
-let lx = 0.0;
-let ly = 100.0;
-let lz = 0.0;
-let theta = 90.0;
-let phi = 0.0;
-let lat = 23.5;
-
-// Create a div for displaying the room dimensions
-const infoDiv = document.createElement('div');
-infoDiv.style.position = 'absolute';
-infoDiv.style.top = '10px';
-infoDiv.style.right = '10px';
-infoDiv.style.fontFamily = 'Arial, sans-serif';
-infoDiv.style.fontSize = '16px';
-infoDiv.style.color = 'white';
-document.body.appendChild(infoDiv);
+let lx = 1.0;
+let ly = 0.0;
+let lz = 1.0;
 
 const scene = new THREE.Scene();
-initFog(scene);
 
-
-const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
-camera.position.set(30, 75, 350);
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 5);
+camera.position.set(lx, ly, lz);
+console.log('Camera position:', camera.position);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -36,14 +21,11 @@ document.body.appendChild(renderer.domElement);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.minPolarAngle = 0;
-controls.maxPolarAngle = Math.PI / 2;
+controls.maxPolarAngle = Math.PI;
 controls.enableDamping = true;
 controls.dampingFactor = 0.1;
 
 const sunlight = new THREE.DirectionalLight(0xffffff, 3);
-lx = 100 * Math.cos(THREE.MathUtils.degToRad(theta));
-ly = 100 * Math.sin(THREE.MathUtils.degToRad(theta));
-lz = 100 * Math.tan(THREE.MathUtils.degToRad(phi+lat));
 sunlight.position.set(lx, ly, lz);
 sunlight.castShadow = true;
 sunlight.shadow.camera.left = -500;
@@ -57,189 +39,127 @@ sunlight.shadow.mapSize.width = 4096;
 sunlight.shadow.mapSize.height = 4096;
 scene.add(sunlight);
 
-initGround(scene);
-initSky(scene);
+// KTX2Loader setup
+const ktx2Loader = new KTX2Loader();
+ktx2Loader.setTranscoderPath("/assets/basis/");
+ktx2Loader.detectSupport(renderer);
 
-let roomDimensions = { x: 20, y: 0, z: 15 };
-let roomGroup = null;
+// Raycaster for object selection
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let selectedObject = null;
 
-function createRoom(x, y, z) {
-    const thickness = 1;
-    const scale = 2;
-    const group = new THREE.Group();
+// Store models as separate entities
+export const loadedModels = {};
 
-    // Enable shadow mapping
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+// Load models
+loadGLBModel(scene, '/assets/Disk.glb', renderer, ktx2Loader, "Disk");
+loadGLBModel(scene, '/assets/FrameR.glb', renderer, ktx2Loader, "FrameR");
+loadGLBModel(scene, '/assets/FrameL.glb', renderer, ktx2Loader, "FrameL");
+loadGLBModel(scene, '/assets/Piping.glb', renderer, ktx2Loader, "Piping");
+loadGLBModel(scene, '/assets/Piston Rings.glb', renderer, ktx2Loader, "PistonRings");
+loadGLBModel(scene, '/assets/Pistons.glb', renderer, ktx2Loader, "Pistons");
+loadGLBModel(scene, '/assets/Screws.glb', renderer, ktx2Loader, "Screws");
+loadGLBModel(scene, '/assets/Shoes.glb', renderer, ktx2Loader, "Shoes");
+loadGLBModel(scene, '/assets/Tube.glb', renderer, ktx2Loader, "Tube");
+loadGLBModel(scene, '/assets/Washers.glb', renderer, ktx2Loader, "Washers");
+loadGLBModel(scene, '/assets/Springs.glb', renderer, ktx2Loader, "Springs");
+// Add other models as needed
+console.log('Loaded models:', loadedModels);
 
-    // Material for walls
-    const wallMaterial = new THREE.MeshStandardMaterial({ color: 0xFFFFFF });
+// function onMouseClick(event) {
+//     // Normalize mouse position
+//     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+//     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  
+//     // Set up the raycaster to use camera and mouse position
+//     raycaster.setFromCamera(mouse, camera);
+  
+//     // Check for intersections with the objects in the scene
+//     const intersects = raycaster.intersectObjects(Object.values(loadedModels), true);
+  
+//     if (intersects.length > 0) {
+//       selectedObject = intersects[0].object;
+//       console.log('Selected object:', selectedObject);
+//     } else {
+//       selectedObject = null;
+//       console.log('No object selected');
+//     }
+//   }
 
-    // Front wall
-    const frontWallGeometry = new THREE.BoxGeometry((x + 2 * thickness) * scale, 10 * scale, thickness * scale);
-    const frontWall = new THREE.Mesh(frontWallGeometry, wallMaterial);
-    frontWall.position.set(0, 5 * scale, -z * scale / 2 - 0.5 * thickness * scale);
-    frontWall.castShadow = true;  // Wall casts shadows
-    frontWall.receiveShadow = true; // Wall receives shadows
-    group.add(frontWall);
+function onMouseClick(event) {
+    // Normalize mouse position
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-    // Back wall
-    // const backWallGeometry = new THREE.BoxGeometry((x + 2 * thickness) * scale, 10 * scale, thickness * scale);
-    // const backWall = new THREE.Mesh(backWallGeometry, wallMaterial);
-    // backWall.position.set(0, 5 * scale, z * scale / 2 + 0.5 * thickness * scale);
-    // backWall.castShadow = true;
-    // backWall.receiveShadow = true;
-    // group.add(backWall);
+    console.log('Mouse position:', mouse); // Log mouse position
 
-    // Left wall
-    const leftWallGeometry = new THREE.BoxGeometry(thickness * scale, 10 * scale, z * scale);
-    const leftWall = new THREE.Mesh(leftWallGeometry, wallMaterial);
-    leftWall.position.set(-x * scale / 2 - 0.5 * thickness * scale, 5 * scale, 0);
-    leftWall.castShadow = true;
-    leftWall.receiveShadow = true;
-    group.add(leftWall);
+    // Set up the raycaster to use camera and mouse position
+    raycaster.setFromCamera(mouse, camera);
 
-    // Right wall
-    const rightWallGeometry = new THREE.BoxGeometry(thickness * scale, 10 * scale, z * scale);
-    const rightWall = new THREE.Mesh(rightWallGeometry, wallMaterial);
-    rightWall.position.set(x * scale / 2 + 0.5 * thickness * scale, 5 * scale, 0);
-    rightWall.castShadow = true;
-    rightWall.receiveShadow = true;
-    group.add(rightWall);
+    // Check for intersections with the objects in the scene
+    const intersects = raycaster.intersectObjects(Object.values(loadedModels), true);
 
-    // Floor
-    const floorMaterial = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
-    const floorGeometry = new THREE.BoxGeometry(x * scale, thickness * scale, z * scale);
-    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-    floor.position.set(0, 0.5 * thickness * scale, 0);
-    floor.receiveShadow = true;
-    floor.castShadow = true;
-    group.add(floor);
-
-    // Add the group to the scene
-    scene.add(group);
-    roomGroup = group;
-}
-
-createRoom(roomDimensions.x, roomDimensions.y, roomDimensions.z);
-
-function updateRoomDimensions() {
-    if (roomGroup) {
-        scene.remove(roomGroup);
+    if (intersects.length > 0) {
+        selectedObject = intersects[0].object;
+        console.log('Selected object:', selectedObject);
+    } else {
+        selectedObject = null;
+        console.log('No object selected');
     }
-    createRoom(roomDimensions.x, roomDimensions.y, roomDimensions.z);
-    infoDiv.textContent = `Room Dimensions: X = ${roomDimensions.x}, Z = ${roomDimensions.z}`;
 }
 
+
+// Arrow key movement for the selected object
+function onKeyDown(event) {
+  if (selectedObject) {
+    const moveDistance = 0.005; // Adjust the movement speed
+
+    // Move object along the X, Y, or Z axis depending on the arrow key pressed
+    switch (event.key) {
+      case 'ArrowUp':
+        selectedObject.position.y += moveDistance;
+        break;
+      case 'ArrowDown':
+        selectedObject.position.y -= moveDistance;
+        break;
+      case 'ArrowLeft':
+        selectedObject.position.x -= moveDistance;
+        break;
+      case 'ArrowRight':
+        selectedObject.position.x += moveDistance;
+        break;
+      case 'z':
+        selectedObject.position.z += moveDistance;
+        break;
+      case 'x':
+        selectedObject.position.z -= moveDistance;
+        break;
+      default:
+        break;
+    }
+    console.log('selectedObject:', selectedObject);
+    console.log('Object position:', selectedObject.position);
+  }
+}
+
+// Event listeners for mouse and keyboard input
+window.addEventListener('click', onMouseClick, false);
+window.addEventListener('keydown', onKeyDown, false);
+
+// Animation loop
 function animate() {
-    controls.update();
-    renderer.render(scene, camera);
-    requestAnimationFrame(animate);
+  lx = camera.position.x;
+  ly = camera.position.y;
+  lz = camera.position.z;
+  sunlight.position.set(lx, ly, lz);
+
+  controls.update(); // Update camera controls
+  renderer.render(scene, camera); // Render the scene
+  requestAnimationFrame(animate); // Repeat the animation loop
 }
 
 animate();
-window.addEventListener('keydown', (event) => {
-    const step = 1;
-    switch (event.key) {
-        case 'W': case 'w':
-            roomDimensions.x += step; 
-            break;
-        case 'S': case 's':
-            roomDimensions.x -= step;
-            break;
-        case 'A': case 'a':
-            roomDimensions.z -= step;
-            break;
-        case 'D': case 'd':
-            roomDimensions.z += step;
-            break;
-    }
-    roomDimensions.x = Math.max(4, roomDimensions.x);
-    roomDimensions.z = Math.max(4, roomDimensions.z);
-    updateRoomDimensions();
-});
 
-function createSliderWithLabels(labelText, min, max, step, initialValue, onChange, labels) {
-    const container = document.createElement('div');
-    container.style.marginBottom = '20px';
-    container.style.position = 'relative';
 
-    // Create the label
-    const label = document.createElement('label');
-    label.textContent = labelText;
-    label.style.display = 'block';
-    label.style.marginBottom = '5px';
-    container.appendChild(label);
 
-    // Create the slider
-    const slider = document.createElement('input');
-    slider.type = 'range';
-    slider.min = min;
-    slider.max = max;
-    slider.step = step;
-    slider.value = initialValue;
-    slider.style.width = '200px';
-    container.appendChild(slider);
-
-    // Add slider event
-    slider.addEventListener('input', () => {
-        onChange(slider.value);
-    });
-
-    // Create a label container for the slider
-    const labelsContainer = document.createElement('div');
-    labelsContainer.style.position = 'absolute';
-    labelsContainer.style.top = '35px';
-    labelsContainer.style.width = '200px';
-    labelsContainer.style.display = 'flex';
-    labelsContainer.style.justifyContent = 'space-between';
-    labelsContainer.style.fontFamily = 'Arial, sans-serif';
-    labelsContainer.style.fontSize = '12px';
-    labelsContainer.style.color = '#fff';
-    labelsContainer.style.marginTop = '5px';
-
-    // Add labels to the slider track
-    labels.forEach((text) => {
-        const labelSpan = document.createElement('span');
-        labelSpan.textContent = text;
-        labelsContainer.appendChild(labelSpan);
-    });
-
-    container.appendChild(labelsContainer);
-    sliderContainer.appendChild(container);
-
-    return slider;
-}
-
-// Example: Adding sliders for Sunlight Direction and Elevation
-const sliderContainer = document.createElement('div');
-sliderContainer.style.position = 'absolute';
-sliderContainer.style.top = '10px';
-sliderContainer.style.left = '10px';
-sliderContainer.style.zIndex = '10';
-document.body.appendChild(sliderContainer);
-
-// Sunlight Direction Slider
-createSliderWithLabels(
-    'Time of Day',
-    5, 175, 1, theta,
-    (value) => {
-        theta = parseFloat(value);
-        lx = 100 * Math.cos(THREE.MathUtils.degToRad(theta));
-        ly = 100 * Math.sin(THREE.MathUtils.degToRad(theta));
-        sunlight.position.set(lx, ly, lz);
-    },
-    ['Morning', 'Afternoon', 'Evening']
-);
-
-// Sunlight Elevation Slider
-createSliderWithLabels(
-    'Season',
-    -23.5, 23.5, 1, phi,
-    (value) => {
-        phi = parseFloat(value);
-        lz = 100 * Math.tan(THREE.MathUtils.degToRad(phi+lat));
-        sunlight.position.set(lx, ly, lz);
-    },
-    ['Summer', 'Winter']
-);
