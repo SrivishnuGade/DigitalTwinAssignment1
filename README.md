@@ -93,5 +93,5 @@ Feel free to fork the repo, raise issues, or submit pull requests!
 - **[Srivishnu Muni Gade](https://github.com/SrivishnuGade)**  
   📧 gade.srivishnu@gmail.com
 
-- **[Tejas Naik J](https://github.com/author2)**  
-  📧 author2.email@example.com
+- **[Tejas Naik J](https://github.com/tejasnaikj)**  
+  📧 tejasnaikj7887@gmail.com
