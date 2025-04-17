@@ -74,7 +74,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xAAAAAA);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, 1, 5);
+camera.position.set(0, 0.1, -0.5);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -97,9 +97,9 @@ const directionalLights = [
 ];
 
 directionalLights[0].position.set(5, 5, 10);
-directionalLights[1].position.set(-5, 5, -10);
-directionalLights[2].position.set(0, 10, 0);
-directionalLights[3].position.set(0, -5, 5);
+directionalLights[1].position.set(-5, -5, -10);
+directionalLights[2].position.set(5, 0, 0);
+directionalLights[3].position.set(-5, 0, 5);
 
 directionalLights.forEach(light => {
     light.castShadow = true;
@@ -238,7 +238,7 @@ function applyBrake() {
             // Update the speed display slider
             if (speedSlider) {
                 speedSlider.value = v_car;
-                speedValueLabel.textContent = `${v_car.toFixed(1)} m/s`;
+                speedValueLabel.textContent = `${(v_car*3.6).toFixed(1)} kmph`;
             }
             
             // Stop braking once speed reaches 0
@@ -264,7 +264,7 @@ function accelerate() {
             // Update the speed display slider
             if (speedSlider) {
                 speedSlider.value = v_car;
-                speedValueLabel.textContent = `${v_car.toFixed(1)} m/s`;
+                speedValueLabel.textContent = `${(v_car*3.6).toFixed(1)} kmph`;
             }
             
             // Stop accelerating at max speed
@@ -287,7 +287,7 @@ function resetSpeed() {
     
     if (speedSlider) {
         speedSlider.value = v_car;
-        speedValueLabel.textContent = `${v_car.toFixed(1)} m/s`;
+        speedValueLabel.textContent = `${(v_car*3.6).toFixed(1)} kmph`;
     }
     
     // Reset temperature
@@ -413,7 +413,7 @@ function updateSimulation() {
         <h2 style="margin-top: 0;">Simulation Variables</h2>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; line-height: 1.6;">
             <div><strong>Vehicle Speed:</strong></div>
-            <div>${v_car.toFixed(2)} m/s</div>
+            <div>${(v_car*3.6).toFixed(2)} kmph</div>
             
             <div><strong>Disk Temperature:</strong></div>
             <div style="color: ${tempColor}; font-weight: bold;">${tempCelsius.toFixed(2)}°C</div>
@@ -582,7 +582,7 @@ speedSlider.disabled = true; // Make it display-only
 speedControlGroup.appendChild(speedSlider);
 
 const speedValueLabel = document.createElement('span');
-speedValueLabel.textContent = `${v_car.toFixed(1)} m/s`;
+speedValueLabel.textContent = `${(v_car*3.6).toFixed(1)} kmph`;
 speedValueLabel.style.minWidth = '60px';
 speedControlGroup.appendChild(speedValueLabel);
 
@@ -629,34 +629,34 @@ resetButton.style.fontWeight = 'bold';
 resetButton.addEventListener('click', resetSpeed);
 buttonGroup.appendChild(resetButton);
 
-// Add disk rotation toggle
-const rotationControlGroup = document.createElement('div');
-rotationControlGroup.style.display = 'flex';
-rotationControlGroup.style.alignItems = 'center';
-rotationControlGroup.style.gap = '10px';
-controlContainer.appendChild(rotationControlGroup);
+// // Add disk rotation toggle
+// const rotationControlGroup = document.createElement('div');
+// rotationControlGroup.style.display = 'flex';
+// rotationControlGroup.style.alignItems = 'center';
+// rotationControlGroup.style.gap = '10px';
+// controlContainer.appendChild(rotationControlGroup);
 
-// Create label for rotation
-const rotationLabel = document.createElement('label');
-rotationLabel.textContent = 'Disk Rotation:';
-rotationLabel.style.marginRight = '5px';
-rotationControlGroup.appendChild(rotationLabel);
+// // Create label for rotation
+// const rotationLabel = document.createElement('label');
+// rotationLabel.textContent = 'Disk Rotation:';
+// rotationLabel.style.marginRight = '5px';
+// rotationControlGroup.appendChild(rotationLabel);
 
-// Create toggle button for disk rotation
-const rotationToggle = document.createElement('button');
-rotationToggle.textContent = rotateDisk ? 'ON' : 'OFF';
-rotationToggle.style.padding = '5px 10px';
-rotationToggle.style.backgroundColor = rotateDisk ? '#4CAF50' : '#f44336';
-rotationToggle.style.border = 'none';
-rotationToggle.style.borderRadius = '3px';
-rotationToggle.style.color = 'white';
-rotationToggle.style.cursor = 'pointer';
-rotationToggle.addEventListener('click', () => {
-    rotateDisk = !rotateDisk;
-    rotationToggle.textContent = rotateDisk ? 'ON' : 'OFF';
-    rotationToggle.style.backgroundColor = rotateDisk ? '#4CAF50' : '#f44336';
-});
-rotationControlGroup.appendChild(rotationToggle);
+// // Create toggle button for disk rotation
+// const rotationToggle = document.createElement('button');
+// rotationToggle.textContent = rotateDisk ? 'ON' : 'OFF';
+// rotationToggle.style.padding = '5px 10px';
+// rotationToggle.style.backgroundColor = rotateDisk ? '#4CAF50' : '#f44336';
+// rotationToggle.style.border = 'none';
+// rotationToggle.style.borderRadius = '3px';
+// rotationToggle.style.color = 'white';
+// rotationToggle.style.cursor = 'pointer';
+// rotationToggle.addEventListener('click', () => {
+//     rotateDisk = !rotateDisk;
+//     rotationToggle.textContent = rotateDisk ? 'ON' : 'OFF';
+//     rotationToggle.style.backgroundColor = rotateDisk ? '#4CAF50' : '#f44336';
+// });
+// rotationControlGroup.appendChild(rotationToggle);
 
 // Initialize button states
 updateButtonStates();
