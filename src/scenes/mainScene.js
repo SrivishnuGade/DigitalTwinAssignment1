@@ -28,8 +28,8 @@ let v_car = 30; // Starting with initial speed
 let v_car_prev = 30;
 let isBraking = false;
 let isAccelerating = false;
-let brakeDeceleration = 5; // m/s²
-let acceleration = 3; // m/s²
+let brakeDeceleration = 0; // m/s²
+let acceleration = 0; // m/s²
 let maxSpeed = 40; // Maximum speed in m/s
 
 let a_car = 0;
@@ -227,7 +227,7 @@ function updateDiskColor() {
 
 // Function to apply braking
 function applyBrake() {
-    if (!isBraking && v_car > 0 && brakeDeceleration > 0) {
+    if (v_car > 0 && brakeDeceleration > 0) {
         isBraking = true;
         isAccelerating = false;
         
@@ -253,7 +253,7 @@ function applyBrake() {
 
 // Function to accelerate
 function accelerate() {
-    if (!isAccelerating && v_car < maxSpeed && acceleration > 0) {
+    if (v_car < maxSpeed && acceleration > 0) {
         isAccelerating = true;
         isBraking = false;
         
@@ -282,6 +282,8 @@ function resetSpeed() {
     v_car = 30; // Reset to initial speed
     isBraking = false;
     isAccelerating = false;
+    acceleration=0;
+    brakeDeceleration=0;
     
     if (speedSlider) {
         speedSlider.value = v_car;
@@ -486,6 +488,19 @@ brakeSlider.style.transform = 'rotate(180deg)';
 brakeSlider.addEventListener('input', function() {
     brakeDeceleration = parseFloat(this.value);
     brakeSliderValue.textContent = brakeDeceleration.toFixed(1);
+    
+    // Set acceleration to zero when brake is applied
+    if (brakeDeceleration > 0) {
+        acceleration = 0;
+        accelSlider.value = '0';
+        accelSliderValue.textContent = '0.0';
+        isAccelerating = false;
+        isBraking=true;
+    }
+    
+    // Update braking flag
+    isBraking = brakeDeceleration > 0;
+    
     updateButtonStates();
 });
 brakeSliderContainer.appendChild(brakeSlider);
@@ -521,6 +536,19 @@ accelSlider.style.transform = 'rotate(180deg)';
 accelSlider.addEventListener('input', function() {
     acceleration = parseFloat(this.value);
     accelSliderValue.textContent = acceleration.toFixed(1);
+    
+    // Set brake to zero when accelerating
+    if (acceleration > 0) {
+        brakeDeceleration = 0;
+        brakeSlider.value = '0';
+        brakeSliderValue.textContent = '0.0';
+        isBraking = false;
+        isAccelerating=true;
+    }
+    
+    // Update accelerating flag
+    isAccelerating = acceleration > 0;
+    
     updateButtonStates();
 });
 accelSliderContainer.appendChild(accelSlider);
