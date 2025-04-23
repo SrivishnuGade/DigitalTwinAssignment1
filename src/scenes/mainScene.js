@@ -437,6 +437,7 @@ function updateSimulation() {
             <div>${KE_sheddedAtFront.toFixed(2)} J</div>
         </div>
     `;
+    updatePlot();
 }
 
 // Control container for all controls
@@ -484,10 +485,10 @@ brakeSlider.value = brakeDeceleration;
 brakeSlider.style.height = '150px';
 brakeSlider.style.WebkitAppearance = 'slider-vertical';
 brakeSlider.style.writingMode = 'bt-lr';
-brakeSlider.style.transform = 'rotate(180deg)';
+// brakeSlider.style.transform = 'rotate(180deg)';
 brakeSlider.addEventListener('input', function() {
     brakeDeceleration = parseFloat(this.value);
-    brakeSliderValue.textContent = brakeDeceleration.toFixed(1);
+    brakeSliderValue.textContent = '-'+brakeDeceleration.toFixed(1);
     
     // Set acceleration to zero when brake is applied
     if (brakeDeceleration > 0) {
@@ -532,7 +533,7 @@ accelSlider.value = acceleration;
 accelSlider.style.height = '150px';
 accelSlider.style.WebkitAppearance = 'slider-vertical';
 accelSlider.style.writingMode = 'bt-lr';
-accelSlider.style.transform = 'rotate(180deg)';
+// accelSlider.style.transform = 'rotate(180deg)';
 accelSlider.addEventListener('input', function() {
     acceleration = parseFloat(this.value);
     accelSliderValue.textContent = acceleration.toFixed(1);
@@ -660,3 +661,97 @@ buttonGroup.appendChild(resetButton);
 
 // Initialize button states
 updateButtonStates();
+
+// Add a canvas element for the plot
+const plotCanvas = document.createElement('canvas');
+plotCanvas.style.position = 'absolute';
+plotCanvas.style.top = '10px';
+plotCanvas.style.right = '10px';
+plotCanvas.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+plotCanvas.style.border = '1px solid white';
+plotCanvas.width = 1500;
+plotCanvas.height = 300;
+document.body.appendChild(plotCanvas);
+
+const plotContext = plotCanvas.getContext('2d');
+
+// Data storage for the last 20 seconds (circular list)
+const maxDataPoints = 200; // Assuming 10 updates per second for 20 seconds
+const plotData = {
+    time: new Array(maxDataPoints).fill(0),
+    T_disk: new Array(maxDataPoints).fill(0),
+    v_car: new Array(maxDataPoints).fill(0),
+    index: 0 // Tracks the current position in the circular list
+};
+
+function updatePlot() {
+    const maxTime = 20; // Last 20 seconds
+    const currentTime = performance.now() / 1000;
+
+    // Add current data to the circular list
+    plotData.time[plotData.index] = currentTime;
+    plotData.T_disk[plotData.index] = T_disk - 273.15; // Convert to Celsius
+    plotData.v_car[plotData.index] = v_car;
+
+    // Increment the index and wrap around if it exceeds maxDataPoints
+    plotData.index = (plotData.index + 1) % maxDataPoints;
+
+    // Clear the canvas
+    plotContext.clearRect(0, 0, plotCanvas.width, plotCanvas.height);
+
+    // Draw axes
+    plotContext.strokeStyle = 'white';
+    plotContext.lineWidth = 1;
+    plotContext.beginPath();
+    plotContext.moveTo(50, 10); // Y-axis
+    plotContext.lineTo(50, 290); // Adjusted for full height
+    plotContext.lineTo(1490, 290); // X-axis spans the full width
+    plotContext.stroke();
+
+    // Scale data
+    const timeScale = (plotCanvas.width - 100) / maxTime; // Adjust time scale to fit the canvas width
+    const tempScale = 250 / 500; // Assuming max temperature is 500°C, scaled to canvas height
+    const speedScale = 250 / maxSpeed; // Scale speed to canvas height
+
+    // Find the oldest data point in the circular buffer
+    const oldestIndex = (plotData.index + 1) % maxDataPoints;
+    const oldestTime = plotData.time[oldestIndex];
+
+    // Normalize time values so the most recent data point aligns with t=20
+    const timeOffset = plotData.time[(plotData.index - 1 + maxDataPoints) % maxDataPoints] - maxTime;
+
+    // Plot T_disk
+    plotContext.strokeStyle = 'red';
+    plotContext.beginPath();
+    for (let i = 0; i < maxDataPoints; i++) {
+        const index = (oldestIndex + i) % maxDataPoints; // Circular indexing
+        const normalizedTime = plotData.time[index] - timeOffset;
+        if (normalizedTime < 0) continue; // Skip points outside the 20-second window
+        const x = 50 + (normalizedTime * timeScale);
+        const y = 290 - (plotData.T_disk[index] * tempScale);
+        if (i === 0) plotContext.moveTo(x, y);
+        else plotContext.lineTo(x, y);
+    }
+    plotContext.stroke();
+
+    // Plot v_car
+    plotContext.strokeStyle = 'blue';
+    plotContext.beginPath();
+    for (let i = 0; i < maxDataPoints; i++) {
+        const index = (oldestIndex + i) % maxDataPoints; // Circular indexing
+        const normalizedTime = plotData.time[index] - timeOffset;
+        if (normalizedTime < 0) continue; // Skip points outside the 20-second window
+        const x = 50 + (normalizedTime * timeScale);
+        const y = 290 - (plotData.v_car[index] * speedScale);
+        if (i === 0) plotContext.moveTo(x, y);
+        else plotContext.lineTo(x, y);
+    }
+    plotContext.stroke();
+
+    // Add labels
+    plotContext.fillStyle = 'white';
+    plotContext.font = '14px monospace';
+    plotContext.fillText('Time (s)', plotCanvas.width / 2 - 20, 310); // Centered x-axis label
+    plotContext.fillText('T_disk (°C)', 10, 20);
+    plotContext.fillText('v_car (m/s)', 10, 40);
+}
