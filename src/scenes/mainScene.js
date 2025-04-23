@@ -24,8 +24,8 @@ let rho = 1.01;
 
 let t = 0.1;
 
-let v_car = 30; // Starting with initial speed
-let v_car_prev = 30;
+let v_car = 0; // Starting with initial speed
+let v_car_prev = 0;
 let isBraking = false;
 let isAccelerating = false;
 let brakeDeceleration = 0; // m/s²
@@ -279,7 +279,7 @@ function accelerate() {
 
 // Function to reset speed
 function resetSpeed() {
-    v_car = 30; // Reset to initial speed
+    v_car = 0; // Reset to initial speed
     isBraking = false;
     isAccelerating = false;
     acceleration=0;
