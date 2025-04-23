@@ -630,34 +630,6 @@ resetButton.style.fontWeight = 'bold';
 resetButton.addEventListener('click', resetSpeed);
 buttonGroup.appendChild(resetButton);
 
-// // Add disk rotation toggle
-// const rotationControlGroup = document.createElement('div');
-// rotationControlGroup.style.display = 'flex';
-// rotationControlGroup.style.alignItems = 'center';
-// rotationControlGroup.style.gap = '10px';
-// controlContainer.appendChild(rotationControlGroup);
-
-// // Create label for rotation
-// const rotationLabel = document.createElement('label');
-// rotationLabel.textContent = 'Disk Rotation:';
-// rotationLabel.style.marginRight = '5px';
-// rotationControlGroup.appendChild(rotationLabel);
-
-// // Create toggle button for disk rotation
-// const rotationToggle = document.createElement('button');
-// rotationToggle.textContent = rotateDisk ? 'ON' : 'OFF';
-// rotationToggle.style.padding = '5px 10px';
-// rotationToggle.style.backgroundColor = rotateDisk ? '#4CAF50' : '#f44336';
-// rotationToggle.style.border = 'none';
-// rotationToggle.style.borderRadius = '3px';
-// rotationToggle.style.color = 'white';
-// rotationToggle.style.cursor = 'pointer';
-// rotationToggle.addEventListener('click', () => {
-//     rotateDisk = !rotateDisk;
-//     rotationToggle.textContent = rotateDisk ? 'ON' : 'OFF';
-//     rotationToggle.style.backgroundColor = rotateDisk ? '#4CAF50' : '#f44336';
-// });
-// rotationControlGroup.appendChild(rotationToggle);
 
 // Initialize button states
 updateButtonStates();
@@ -669,8 +641,8 @@ plotCanvas.style.top = '10px';
 plotCanvas.style.right = '10px';
 plotCanvas.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
 plotCanvas.style.border = '1px solid white';
-plotCanvas.width = 1500;
-plotCanvas.height = 300;
+plotCanvas.width = 500; // One-third of the original width (1500 / 3)
+plotCanvas.height = 150; // Half of the original height (300 / 2)
 document.body.appendChild(plotCanvas);
 
 const plotContext = plotCanvas.getContext('2d');
@@ -703,19 +675,18 @@ function updatePlot() {
     plotContext.strokeStyle = 'white';
     plotContext.lineWidth = 1;
     plotContext.beginPath();
-    plotContext.moveTo(50, 10); // Y-axis
-    plotContext.lineTo(50, 290); // Adjusted for full height
-    plotContext.lineTo(1490, 290); // X-axis spans the full width
+    plotContext.moveTo(30, 10); // Y-axis
+    plotContext.lineTo(30, 140); // Adjusted for new height
+    plotContext.lineTo(490, 140); // Adjusted for new width
     plotContext.stroke();
 
     // Scale data
-    const timeScale = (plotCanvas.width - 100) / maxTime; // Adjust time scale to fit the canvas width
-    const tempScale = 250 / 500; // Assuming max temperature is 500°C, scaled to canvas height
-    const speedScale = 250 / maxSpeed; // Scale speed to canvas height
+    const timeScale = (plotCanvas.width - 40) / maxTime; // Adjust time scale to fit the new canvas width
+    const tempScale = 100 / 250; // Assuming max temperature is 500°C
+    const speedScale = 100 / maxSpeed; // Scale speed to fit the new canvas height
 
     // Find the oldest data point in the circular buffer
     const oldestIndex = (plotData.index + 1) % maxDataPoints;
-    const oldestTime = plotData.time[oldestIndex];
 
     // Normalize time values so the most recent data point aligns with t=20
     const timeOffset = plotData.time[(plotData.index - 1 + maxDataPoints) % maxDataPoints] - maxTime;
@@ -723,35 +694,59 @@ function updatePlot() {
     // Plot T_disk
     plotContext.strokeStyle = 'red';
     plotContext.beginPath();
+    let previousTime = null; // Track the previous time to detect discontinuities
     for (let i = 0; i < maxDataPoints; i++) {
         const index = (oldestIndex + i) % maxDataPoints; // Circular indexing
         const normalizedTime = plotData.time[index] - timeOffset;
         if (normalizedTime < 0) continue; // Skip points outside the 20-second window
-        const x = 50 + (normalizedTime * timeScale);
-        const y = 290 - (plotData.T_disk[index] * tempScale);
-        if (i === 0) plotContext.moveTo(x, y);
-        else plotContext.lineTo(x, y);
+
+        const x = 30 + (normalizedTime * timeScale);
+        const y = 140 - (plotData.T_disk[index] * tempScale);
+
+        // Break the line if there is a discontinuity (time wraparound)
+        if (previousTime !== null && normalizedTime < previousTime) {
+            plotContext.moveTo(x, y);
+        } else if (i === 0) {
+            plotContext.moveTo(x, y);
+        } else {
+            plotContext.lineTo(x, y);
+        }
+
+        previousTime = normalizedTime;
     }
     plotContext.stroke();
 
     // Plot v_car
-    plotContext.strokeStyle = 'blue';
+    plotContext.strokeStyle = '#00FFFF';
     plotContext.beginPath();
+    previousTime = null; // Reset for v_car
     for (let i = 0; i < maxDataPoints; i++) {
         const index = (oldestIndex + i) % maxDataPoints; // Circular indexing
         const normalizedTime = plotData.time[index] - timeOffset;
         if (normalizedTime < 0) continue; // Skip points outside the 20-second window
-        const x = 50 + (normalizedTime * timeScale);
-        const y = 290 - (plotData.v_car[index] * speedScale);
-        if (i === 0) plotContext.moveTo(x, y);
-        else plotContext.lineTo(x, y);
+
+        const x = 30 + (normalizedTime * timeScale);
+        const y = 140 - (plotData.v_car[index] * speedScale);
+
+        // Break the line if there is a discontinuity (time wraparound)
+        if (previousTime !== null && normalizedTime < previousTime) {
+            plotContext.moveTo(x, y);
+        } else if (i === 0) {
+            plotContext.moveTo(x, y);
+        } else {
+            plotContext.lineTo(x, y);
+        }
+
+        previousTime = normalizedTime;
     }
     plotContext.stroke();
 
     // Add labels
     plotContext.fillStyle = 'white';
-    plotContext.font = '14px monospace';
-    plotContext.fillText('Time (s)', plotCanvas.width / 2 - 20, 310); // Centered x-axis label
-    plotContext.fillText('T_disk (°C)', 10, 20);
-    plotContext.fillText('v_car (m/s)', 10, 40);
+    plotContext.font = '12px monospace';
+    plotContext.fillText('Time (s)', plotCanvas.width / 2 - 20, 160); // Centered x-axis label
+    plotContext.fillStyle = 'red';
+    plotContext.fillText('T_disk (°C)', 5, 20);
+    plotContext.fillStyle = '#00FFFF';
+    plotContext.fillText('v_car (m/s)', 5, 40);
 }
