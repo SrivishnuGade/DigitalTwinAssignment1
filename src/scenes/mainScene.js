@@ -377,8 +377,8 @@ function onWindowResize() {
 
 function updateSimulation() {
     a_car = (v_car - v_car_prev) / t;
-    N_f = (m_car * g * f_psi) / (f_psi + r_psi) + (hCOG * a_car) / wheelbase;
-    N_r = (m_car * g * r_psi) / (f_psi + r_psi) - (hCOG * a_car) / wheelbase;
+    N_f = (m_car * g * f_psi) / (f_psi + r_psi) - (m_car * hCOG * a_car) / wheelbase;
+    N_r = (m_car * g * r_psi) / (f_psi + r_psi) + (m_car * hCOG * a_car) / wheelbase;
     KE_car = 0.5 * m_car * v_car ** 2;
     x_car = v_car * t;
     Fr = (1 / 2) * rho * CdA * v_car ** 2;
