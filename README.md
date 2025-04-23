@@ -4,6 +4,8 @@
 
 This project implements a **Digital Twin** of a **Disk Brake** to simulate the **temperature dynamics** of the brake disc under real-world driving conditions.
 
+![Disk Brake Simulation Screenshot](public/assets/DTXR-Project.png)
+
 Using **physics-based modeling** and **thermodynamic principles**, it calculates how the disc temperature evolves over time based on:
 
 - **Kinetic and potential energy transformations**
